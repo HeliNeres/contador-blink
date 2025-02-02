@@ -66,12 +66,13 @@ int digitos[10][25] = {
 
 //pino de saída
 #define OUT_PIN 7
-#define LED_PIN 11
+#define LED_PIN 13
 
 //botões da BitDogLab
 const uint button_0 = 5;
 const uint button_1 = 6;
 uint last_time = 0;
+uint8_t last_pin = 0;
 int8_t num = 0;
 
 PIO pio;
@@ -89,8 +90,9 @@ void desenho_pio(int desenho[25], PIO pio, uint sm){
 //rotina da interrupção
 static void gpio_irq_handler(uint gpio, uint32_t events){
     uint current_time = to_us_since_boot(get_absolute_time());
-    printf("Interrupção ocorreu no pino %d, no evento %d, número %d\n", gpio, events, num);
-    if (current_time - last_time > 100000){ //debouncing de 100ms
+    uint8_t current_pin = gpio;
+    //printf("Interrupção ocorreu no pino %d, no evento %d, número %d\n", gpio, events, num);
+    if ((current_time - last_time > 200000) && (current_pin == last_pin)){ //debouncing de 100ms
         if (gpio == 5) num--;
         else if (gpio == 6) num++;
 
@@ -99,6 +101,7 @@ static void gpio_irq_handler(uint gpio, uint32_t events){
 
         desenho_pio(digitos[num], pio, sm);
     }
+    last_pin = gpio;
 }
 
 int main(){
