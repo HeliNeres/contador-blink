@@ -66,7 +66,7 @@ int digitos[10][25] = {
 
 //pino de saída
 #define OUT_PIN 7
-#define LED_PIN 
+#define LED_PIN 11
 
 //botões da BitDogLab
 const uint button_0 = 5;
@@ -129,13 +129,18 @@ int main(){
     gpio_set_dir(button_1, GPIO_IN);
     gpio_pull_up(button_1);
 
+    // inicializar led
+    gpio_init(LED_PIN);
+    gpio_set_dir(LED_PIN, GPIO_OUT);
+
     //interrupção da gpio habilitada
     gpio_set_irq_enabled_with_callback(button_0, GPIO_IRQ_EDGE_FALL, 1, & gpio_irq_handler);
     gpio_set_irq_enabled_with_callback(button_1, GPIO_IRQ_EDGE_FALL, 1, & gpio_irq_handler);
 
     while (true) {
-        printf("Hello, world!\n");
-        sleep_ms(1000);
+        gpio_put(LED_PIN, 1);
+        sleep_ms(200);
+        gpio_put(LED_PIN, 0);
     }
 }
 
