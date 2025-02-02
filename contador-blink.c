@@ -9,56 +9,56 @@
 #include "matriz.pio.h"
 
 int digitos[10][25] = {
-    {0,75,75,75,0,
-     75,75,0,0,75,
-     75,0,750,0,75,
-     75,0,0,75,75,
-     0,75,75,75,0},
-    {0,0,75,0,0,
-     0,0,75,75,0,
-     0,0,75,0,0,
-     0,0,75,0,0,
-     0,75,75,75,0},
-    {75,75,75,75,0,
-     75,0,0,0,0,
-     0,75,75,75,0,
-     0,0,0,0,75,
-     75,75,75,75,75},
-    {75,75,75,75,0,
-     75,0,0,0,0,
-     0,0,75,75,0,
-     75,0,0,0,0,
-     75,75,75,75,0},
-    {0,0,75,75,0,
-     0,75,0,75,0,
-     75,0,0,75,0,
-     75,75,75,75,75,
-     0,0,0,75,0},
-    {75,75,75,75,75,
-     0,0,0,0,75,
-     75,75,75,75,0,
-     75,0,0,0,0,
-     75,75,75,75,0},
-    {0,75,75,75,75,
-     0,0,0,0,75,
-     75,75,75,75,0,
-     75,0,0,0,75,
-     0,75,75,75,0},
-    {75,75,75,75,75,
-     75,0,0,0,0,
-     0,0,0,75,0,
-     0,0,75,0,0,
-     0,75,0,0,0},
-    {0,75,75,75,0,
-     75,0,0,0,75,
-     0,75,75,75,0,
-     75,0,0,0,75,
-     0,75,75,75,0},
-    {0,75,75,75,0,
-     75,0,0,0,75,
-     0,75,75,75,75,
-     75,0,0,0,0,
-     75,75,75,75,0},
+    {0,50,50,50,0,
+     50,50,0,0,50,
+     50,0,500,0,50,
+     50,0,0,50,50,
+     0,50,50,50,0},
+    {0,0,50,0,0,
+     0,0,50,50,0,
+     0,0,50,0,0,
+     0,0,50,0,0,
+     0,50,50,50,0},
+    {50,50,50,50,0,
+     50,0,0,0,0,
+     0,50,50,50,0,
+     0,0,0,0,50,
+     50,50,50,50,50},
+    {50,50,50,50,0,
+     50,0,0,0,0,
+     0,0,50,50,0,
+     50,0,0,0,0,
+     50,50,50,50,0},
+    {0,0,50,50,0,
+     0,50,0,50,0,
+     50,0,0,50,0,
+     50,50,50,50,50,
+     0,0,0,50,0},
+    {50,50,50,50,50,
+     0,0,0,0,50,
+     50,50,50,50,0,
+     50,0,0,0,0,
+     50,50,50,50,0},
+    {0,50,50,50,50,
+     0,0,0,0,50,
+     50,50,50,50,0,
+     50,0,0,0,50,
+     0,50,50,50,0},
+    {50,50,50,50,50,
+     50,0,0,0,0,
+     0,0,0,50,0,
+     0,0,50,0,0,
+     0,50,0,0,0},
+    {0,50,50,50,0,
+     50,0,0,0,50,
+     0,50,50,50,0,
+     50,0,0,0,50,
+     0,50,50,50,0},
+    {0,50,50,50,0,
+     50,0,0,0,50,
+     0,50,50,50,50,
+     50,0,0,0,0,
+     50,50,50,50,0},
 };
 
 //número de LEDs
@@ -78,7 +78,7 @@ PIO pio;
 uint sm;
 
 //rotina para acionar a matrix de leds - ws2812b
-void desenho_pio(double *desenho, PIO pio, uint sm){
+void desenho_pio(int desenho[25], PIO pio, uint sm){
     for (int16_t i = 0; i < NUM_LEDS; i++) {
         pio_sm_put_blocking(pio, sm, desenho[24-i]);
         pio_sm_put_blocking(pio, sm, 0);
@@ -89,7 +89,8 @@ void desenho_pio(double *desenho, PIO pio, uint sm){
 //rotina da interrupção
 static void gpio_irq_handler(uint gpio, uint32_t events){
     uint current_time = to_us_since_boot(get_absolute_time());
-    if (current_time - last_time > 50000){ //debouncing de 50ms
+    printf("Interrupção ocorreu no pino %d, no evento %d, número %d\n", gpio, events, num);
+    if (current_time - last_time > 100000){ //debouncing de 100ms
         if (gpio == 5) num--;
         else if (gpio == 6) num++;
 
@@ -115,9 +116,11 @@ int main(){
     if (ok) printf("clock set to %ld\n", clock_get_hz(clk_sys));
 
     //configurações da PIO
-    uint offset = pio_add_program(pio, &pio_matrix_program);
+    uint offset = pio_add_program(pio, &matriz_program);
     sm = pio_claim_unused_sm(pio, true);
-    pio_matrix_program_init(pio, sm, offset, OUT_PIN);
+    matriz_program_init(pio, sm, offset, OUT_PIN, 800000);
+
+    sleep_ms(1000);
 
     //inicializar o botão de interrupção - GPIO5
     gpio_init(button_0);
@@ -137,10 +140,13 @@ int main(){
     gpio_set_irq_enabled_with_callback(button_0, GPIO_IRQ_EDGE_FALL, 1, & gpio_irq_handler);
     gpio_set_irq_enabled_with_callback(button_1, GPIO_IRQ_EDGE_FALL, 1, & gpio_irq_handler);
 
+    desenho_pio(digitos[num], pio, sm);
+
     while (true) {
         gpio_put(LED_PIN, 1);
-        sleep_ms(200);
+        sleep_ms(100);
         gpio_put(LED_PIN, 0);
+        sleep_ms(100);
     }
 }
 
